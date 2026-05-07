@@ -1,0 +1,50 @@
+<?php
+
+use App\Services\AudioClassifierService;
+use App\Services\OllamaService;
+
+it('returns noise immediately for an empty transcript without calling Ollama', function () {
+    $ollama = new class extends OllamaService {
+        public bool $called = false;
+        public function generate(string $model, string $prompt): string
+        {
+            $this->called = true;
+            return '';
+        }
+    };
+
+    $result = (new AudioClassifierService($ollama))->classify('');
+
+    expect($result)->toBe('noise')
+        ->and($ollama->called)->toBeFalse();
+});
+
+it('returns speech when Ollama classifies the transcript as speech', function () {
+    $ollama = new class extends OllamaService {
+        public function generate(string $model, string $prompt): string { return 'speech'; }
+    };
+
+    $result = (new AudioClassifierService($ollama))->classify('Welcome to today\'s show.');
+
+    expect($result)->toBe('speech');
+});
+
+it('returns song when Ollama classifies the transcript as song', function () {
+    $ollama = new class extends OllamaService {
+        public function generate(string $model, string $prompt): string { return 'song'; }
+    };
+
+    $result = (new AudioClassifierService($ollama))->classify('Baby baby baby oh, like baby baby baby no');
+
+    expect($result)->toBe('song');
+});
+
+it('defaults to noise when Ollama returns an unrecognisable response', function () {
+    $ollama = new class extends OllamaService {
+        public function generate(string $model, string $prompt): string { return 'I think this is speech, probably.'; }
+    };
+
+    $result = (new AudioClassifierService($ollama))->classify('some transcript');
+
+    expect($result)->toBe('noise');
+});
