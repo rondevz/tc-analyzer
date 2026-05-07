@@ -3,7 +3,7 @@
 A Laravel Zero CLI application that reads a CSV of TikTok handles, fetches recent videos, transcribes audio, and uses local LLMs (Ollama) to detect spoken languages and hair color.
 
 ```
-php application scan creators.csv
+php tc-analyzer scan creators.csv
 ```
 
 ---
@@ -64,20 +64,20 @@ touch database/database.sqlite
 ### Run migrations
 
 ```bash
-php application migrate
+php tc-analyzer migrate
 ```
 
 ### Run the pipeline
 
 ```bash
 # Process all 10 handles in creators.csv
-php application scan creators.csv
+php tc-analyzer scan creators.csv
 
 # Process only the first 2 handles (useful for demos)
-php application scan creators.csv --limit=2
+php tc-analyzer scan creators.csv --limit=2
 
 # Keep downloaded .mp4 files after processing
-php application scan creators.csv --keep-videos
+php tc-analyzer scan creators.csv --keep-videos
 ```
 
 ---
