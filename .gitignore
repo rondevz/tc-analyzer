@@ -6,3 +6,6 @@
 .phpactor.json
 .env
 /database/database.sqlite
+/storage/frames
+/storage/videos
+/storage
