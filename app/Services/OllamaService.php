@@ -29,7 +29,7 @@ class OllamaService
     private function post(string $model, string $prompt, array $extra): string
     {
         $response = Http::timeout($this->timeout)
-            ->post("{$this->baseUrl}/api/generate", array_merge([
+            ->post($this->baseUrl . '/api/generate', array_merge([
                 'model' => $model,
                 'prompt' => $prompt,
                 'stream' => false,
@@ -37,7 +37,7 @@ class OllamaService
 
         if ($response->failed()) {
             throw new RuntimeException(
-                "Ollama API error [{$response->status()}]: {$response->body()}"
+                sprintf('Ollama API error [%d]: %s', $response->status(), $response->body())
             );
         }
 

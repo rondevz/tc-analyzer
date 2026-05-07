@@ -24,11 +24,17 @@ class ScanCommand extends Command
     protected $description = 'Run the full TikTok creator analysis pipeline';
 
     private ScrapeCreatorsService $scraper;
+
     private VideoDownloaderService $downloader;
+
     private TranscriptionService $transcriber;
+
     private AudioClassifierService $classifier;
+
     private FrameExtractorService $frameExtractor;
+
     private LanguageDetectorService $languageDetector;
+
     private HairColorDetectorService $hairColorDetector;
 
     public function handle(
@@ -51,7 +57,7 @@ class ScanCommand extends Command
         $csvPath = $this->argument('csv');
         $handles = array_values(array_filter(
             array_map('trim', file($csvPath)),
-            fn($h) => str_starts_with($h, '@')
+            fn(string $h): bool => str_starts_with($h, '@')
         ));
 
         if ($limit = $this->option('limit')) {
@@ -65,7 +71,7 @@ class ScanCommand extends Command
                 $this->processCreator($handle, $index + 1, $total);
             } catch (\Throwable $e) {
                 Creator::where('handle', $handle)->update(['status' => 'failed']);
-                Log::error("Creator {$handle} failed: {$e->getMessage()}");
+                Log::error(sprintf('Creator %s failed: %s', $handle, $e->getMessage()));
             }
         }
     }
@@ -73,7 +79,7 @@ class ScanCommand extends Command
     private function processCreator(string $handle, int $num, int $total): void
     {
         $this->newLine();
-        $this->line("<options=bold>{$handle}</> <fg=gray>[{$num}/{$total}]</>");
+        $this->line(sprintf('<options=bold>%s</> <fg=gray>[%d/%d]</>', $handle, $num, $total));
 
         $creator = Creator::firstOrCreate(
             ['handle' => $handle],
@@ -89,8 +95,8 @@ class ScanCommand extends Command
 
         $videos = $this->step(
             '  Fetching videos',
-            fn() => $this->scraper->fetchRecentVideos($handle),
-            fn($vs) => count($vs) . ' video(s) found'
+            fn(): array => $this->scraper->fetchRecentVideos($handle),
+            fn($vs): string => count($vs) . ' video(s) found'
         );
 
         foreach ($videos as $v) {
@@ -105,7 +111,7 @@ class ScanCommand extends Command
 
         foreach ($pending as $vIndex => $video) {
             $this->newLine();
-            $this->line('  <fg=cyan>Video ' . ($vIndex + 1) . "/{$pendingCount}</> <fg=gray>{$video->tiktok_id}</>");
+            $this->line('  <fg=cyan>Video ' . ($vIndex + 1) . sprintf('/%s</> <fg=gray>%s</>', $pendingCount, $video->tiktok_id));
             $this->processVideo($creator, $video);
         }
 
@@ -123,13 +129,13 @@ class ScanCommand extends Command
 
         $languages = $this->step(
             '  Detecting languages',
-            fn() => $this->languageDetector->detect($speechTranscripts),
-            fn($codes) => empty($codes) ? 'none detected' : implode(', ', $codes)
+            fn(): array => $this->languageDetector->detect($speechTranscripts),
+            fn($codes): string => empty($codes) ? 'none detected' : implode(', ', $codes)
         );
 
         $hairColor = $this->step(
             '  Detecting hair color',
-            fn() => $this->hairColorDetector->detect($framePath),
+            fn(): string => $this->hairColorDetector->detect($framePath),
             fn($color) => $color
         );
 
@@ -143,11 +149,11 @@ class ScanCommand extends Command
         $done   = $creator->videos()->where('status', 'done')->count();
         $failed = $creator->videos()->where('status', 'failed')->count();
         $langStr = empty($languages) ? 'none' : implode(', ', $languages);
-        $videoSummary = $done . ' done' . ($failed > 0 ? ", {$failed} failed" : '');
+        $videoSummary = $done . ' done' . ($failed > 0 ? sprintf(', %s failed', $failed) : '');
 
         $this->newLine();
         $this->line(str_repeat('─', 60));
-        $this->line("<options=bold>{$handle}</> · {$videoSummary} · languages: {$langStr} · hair: {$hairColor}");
+        $this->line(sprintf('<options=bold>%s</> · %s · languages: %s · hair: %s', $handle, $videoSummary, $langStr, $hairColor));
     }
 
     private function processVideo(Creator $creator, Video $video): void
@@ -155,17 +161,18 @@ class ScanCommand extends Command
         try {
             $videoPath = $this->step(
                 '    Downloading',
-                fn() => $this->downloader->download($video->tiktok_url, $creator->handle, $video->tiktok_id)
+                fn(): string => $this->downloader->download($video->tiktok_url, $creator->handle, $video->tiktok_id)
             );
             $video->update(['status' => 'downloaded']);
 
             $transcript = $this->step(
                 '    Transcribing',
-                fn() => $this->transcriber->transcribe($videoPath),
-                function ($t) {
+                fn(): string => $this->transcriber->transcribe($videoPath),
+                function ($t): string {
                     if (empty($t)) {
                         return 'empty';
                     }
+
                     $preview = mb_substr($t, 0, 80);
                     return '"' . $preview . (mb_strlen($t) > 80 ? '…' : '') . '"';
                 }
@@ -174,7 +181,7 @@ class ScanCommand extends Command
 
             $audioClass = $this->step(
                 '    Classifying',
-                fn() => $this->classifier->classify($transcript),
+                fn(): string => $this->classifier->classify($transcript),
                 fn($c) => $c
             );
             $video->update(['audio_class' => $audioClass, 'status' => 'classified']);
@@ -185,7 +192,7 @@ class ScanCommand extends Command
                 } else {
                     $framePath = $this->step(
                         '    Extracting frame',
-                        fn() => $this->frameExtractor->extract($videoPath, $creator->handle, $video->tiktok_id)
+                        fn(): string => $this->frameExtractor->extract($videoPath, $creator->handle, $video->tiktok_id)
                     );
                     $video->update(['frame_path' => $framePath]);
                 }
@@ -197,9 +204,9 @@ class ScanCommand extends Command
 
             $video->update(['status' => 'done']);
 
-        } catch (\Throwable $e) {
-            $video->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
-            Log::warning("Video {$video->tiktok_id} failed: {$e->getMessage()}");
+        } catch (\Throwable $throwable) {
+            $video->update(['status' => 'failed', 'error_message' => $throwable->getMessage()]);
+            Log::warning(sprintf('Video %s failed: %s', $video->tiktok_id, $throwable->getMessage()));
         }
     }
 
@@ -215,9 +222,9 @@ class ScanCommand extends Command
             $suffix = $format ? (' <fg=gray>' . $format($result) . '</>') : '';
             $this->output->writeln('<fg=green>✓</>' . $suffix);
             return $result;
-        } catch (\Throwable $e) {
-            $this->output->writeln('<fg=red>✗</> <fg=red>' . $e->getMessage() . '</>');
-            throw $e;
+        } catch (\Throwable $throwable) {
+            $this->output->writeln('<fg=red>✗</> <fg=red>' . $throwable->getMessage() . '</>');
+            throw $throwable;
         }
     }
 }

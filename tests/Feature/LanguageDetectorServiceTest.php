@@ -3,9 +3,10 @@
 use App\Services\LanguageDetectorService;
 use App\Services\OllamaService;
 
-it('returns empty array immediately for empty transcripts without calling Ollama', function () {
+it('returns empty array immediately for empty transcripts without calling Ollama', function (): void {
     $ollama = new class extends OllamaService {
         public bool $called = false;
+
         public function generate(string $model, string $prompt): string
         {
             $this->called = true;
@@ -19,7 +20,7 @@ it('returns empty array immediately for empty transcripts without calling Ollama
         ->and($ollama->called)->toBeFalse();
 });
 
-it('returns the detected language code for an English transcript', function () {
+it('returns the detected language code for an English transcript', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return '["en"]'; }
     };
@@ -29,7 +30,7 @@ it('returns the detected language code for an English transcript', function () {
     expect($result)->toBe(['en']);
 });
 
-it('returns multiple language codes for mixed-language transcripts', function () {
+it('returns multiple language codes for mixed-language transcripts', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return '["en", "es"]'; }
     };
@@ -42,7 +43,7 @@ it('returns multiple language codes for mixed-language transcripts', function ()
     expect($result)->toBe(['en', 'es']);
 });
 
-it('returns empty array when the LLM response is not valid JSON', function () {
+it('returns empty array when the LLM response is not valid JSON', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return 'The languages are English and Spanish.'; }
     };
@@ -52,7 +53,7 @@ it('returns empty array when the LLM response is not valid JSON', function () {
     expect($result)->toBe([]);
 });
 
-it('filters out entries that are not 2-letter strings', function () {
+it('filters out entries that are not 2-letter strings', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return '["en", "english", "e", 42]'; }
     };

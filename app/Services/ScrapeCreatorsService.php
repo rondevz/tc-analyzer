@@ -23,20 +23,20 @@ class ScrapeCreatorsService
 
         if ($response->failed()) {
             throw new RuntimeException(
-                "ScrapeCreators API error for {$handle} [{$response->status()}]: {$response->body()}"
+                sprintf('ScrapeCreators API error for %s [%d]: %s', $handle, $response->status(), $response->body())
             );
         }
 
         $awemeList = $response->json('aweme_list') ?? [];
 
         if (empty($awemeList)) {
-            throw new RuntimeException("No videos returned for handle {$handle}");
+            throw new RuntimeException('No videos returned for handle ' . $handle);
         }
 
         return array_map(
-            fn(array $aweme) => [
+            fn(array $aweme): array => [
                 'tiktok_id' => (string) $aweme['aweme_id'],
-                'tiktok_url' => "https://www.tiktok.com/{$handle}/video/{$aweme['aweme_id']}",
+                'tiktok_url' => sprintf('https://www.tiktok.com/%s/video/%s', $handle, $aweme['aweme_id']),
                 'duration' => (int) round(($aweme['video']['duration'] ?? 0) / 1000),
             ],
             array_slice($awemeList, 0, 3)

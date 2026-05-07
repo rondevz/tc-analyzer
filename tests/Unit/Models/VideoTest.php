@@ -6,11 +6,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function () {
+beforeEach(function (): void {
     Creator::create(['handle' => '@test', 'status' => 'pending']);
 });
 
-it('persists and retrieves a video', function () {
+it('persists and retrieves a video', function (): void {
     Video::create([
         'creator_handle' => '@test',
         'tiktok_id' => 'abc123',
@@ -25,7 +25,7 @@ it('persists and retrieves a video', function () {
         ->and($video->status)->toBe('pending');
 });
 
-it('nullable columns default to null', function () {
+it('nullable columns default to null', function (): void {
     $video = Video::create([
         'creator_handle' => '@test',
         'tiktok_id' => 'abc123',
@@ -39,7 +39,7 @@ it('nullable columns default to null', function () {
         ->and($video->error_message)->toBeNull();
 });
 
-it('belongs to creator', function () {
+it('belongs to creator', function (): void {
     $video = Video::create([
         'creator_handle' => '@test',
         'tiktok_id' => 'abc123',

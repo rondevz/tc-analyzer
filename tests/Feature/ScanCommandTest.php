@@ -29,7 +29,7 @@ function bindScanMocks(array $overrides = []): void
         ScrapeCreatorsService::class => new class('') extends ScrapeCreatorsService {
             public function fetchRecentVideos(string $handle): array
             {
-                return [['tiktok_id' => 'vid1', 'tiktok_url' => "https://tiktok.com/{$handle}/video/vid1", 'duration' => 30]];
+                return [['tiktok_id' => 'vid1', 'tiktok_url' => sprintf('https://tiktok.com/%s/video/vid1', $handle), 'duration' => 30]];
             }
         },
         VideoDownloaderService::class => new class extends VideoDownloaderService {
@@ -57,7 +57,7 @@ function bindScanMocks(array $overrides = []): void
     }
 }
 
-it('processes a handle end-to-end and saves results to the database', function () {
+it('processes a handle end-to-end and saves results to the database', function (): void {
     bindScanMocks();
     $csv = scanCsv('@creator');
 
@@ -80,7 +80,7 @@ it('processes a handle end-to-end and saves results to the database', function (
         ->and($video->frame_path)->toBe('/tmp/test-frame.jpg');
 });
 
-it('processes only the first N handles when --limit is set', function () {
+it('processes only the first N handles when --limit is set', function (): void {
     bindScanMocks();
     $csv = scanCsv('@first', '@second');
 
@@ -92,13 +92,14 @@ it('processes only the first N handles when --limit is set', function () {
         ->and(Creator::find('@second'))->toBeNull();
 });
 
-it('skips a creator that is already done without calling any services', function () {
+it('skips a creator that is already done without calling any services', function (): void {
     Creator::create(['handle' => '@done', 'status' => 'done', 'spoken_languages' => ['fr'], 'hair_color' => 'blonde']);
 
     $scraperCalled = false;
     bindScanMocks([
         ScrapeCreatorsService::class => new class('') extends ScrapeCreatorsService {
             public bool $called = false;
+
             public function fetchRecentVideos(string $handle): array
             {
                 $this->called = true;
@@ -119,7 +120,7 @@ it('skips a creator that is already done without calling any services', function
     expect(Video::where('creator_handle', '@done')->count())->toBe(0);
 });
 
-it('marks a video failed and continues when video processing throws', function () {
+it('marks a video failed and continues when video processing throws', function (): void {
     bindScanMocks([
         VideoDownloaderService::class => new class extends VideoDownloaderService {
             public function download(string $url, string $handle, string $tiktokId): string
@@ -141,7 +142,7 @@ it('marks a video failed and continues when video processing throws', function (
         ->and($video->error_message)->toBe('Network timeout');
 });
 
-it('marks a creator failed and continues to the next creator when the creator-level pipeline throws', function () {
+it('marks a creator failed and continues to the next creator when the creator-level pipeline throws', function (): void {
     bindScanMocks([
         ScrapeCreatorsService::class => new class('') extends ScrapeCreatorsService {
             public function fetchRecentVideos(string $handle): array
@@ -149,7 +150,8 @@ it('marks a creator failed and continues to the next creator when the creator-le
                 if ($handle === '@broken') {
                     throw new \RuntimeException('API rate limit');
                 }
-                return [['tiktok_id' => 'vid1', 'tiktok_url' => "https://tiktok.com/{$handle}/video/vid1", 'duration' => 30]];
+
+                return [['tiktok_id' => 'vid1', 'tiktok_url' => sprintf('https://tiktok.com/%s/video/vid1', $handle), 'duration' => 30]];
             }
         },
     ]);

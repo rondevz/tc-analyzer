@@ -11,8 +11,8 @@ class VideoDownloaderService
     public function download(string $url, string $handle, string $tiktokId): string
     {
         $base = $this->storageBasePath ?? storage_path();
-        $dir = "{$base}/videos/{$handle}";
-        $outputPath = "{$dir}/{$tiktokId}.mp4";
+        $dir = sprintf('%s/videos/%s', $base, $handle);
+        $outputPath = sprintf('%s/%s.mp4', $dir, $tiktokId);
 
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -23,7 +23,7 @@ class VideoDownloaderService
         );
 
         if ($exitCode !== 0) {
-            throw new RuntimeException("yt-dlp failed [{$exitCode}] for {$url}: {$stderr}");
+            throw new RuntimeException(sprintf('yt-dlp failed [%s] for %s: %s', $exitCode, $url, $stderr));
         }
 
         return $outputPath;

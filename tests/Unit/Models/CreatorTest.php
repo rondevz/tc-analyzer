@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('persists and retrieves a creator', function () {
+it('persists and retrieves a creator', function (): void {
     $creator = Creator::create(['handle' => '@test', 'status' => 'pending']);
 
     expect(Creator::find('@test'))->not->toBeNull()
@@ -14,7 +14,7 @@ it('persists and retrieves a creator', function () {
         ->and(Creator::find('@test')->status)->toBe('pending');
 });
 
-it('round-trips spoken_languages as a PHP array', function () {
+it('round-trips spoken_languages as a PHP array', function (): void {
     Creator::create([
         'handle' => '@test',
         'status' => 'pending',
@@ -27,7 +27,7 @@ it('round-trips spoken_languages as a PHP array', function () {
         ->and($languages)->toBe(['en', 'es']);
 });
 
-it('returns videos via hasMany relation', function () {
+it('returns videos via hasMany relation', function (): void {
     $creator = Creator::create(['handle' => '@test', 'status' => 'pending']);
 
     Video::create([
@@ -41,7 +41,7 @@ it('returns videos via hasMany relation', function () {
         ->and($creator->videos->first()->tiktok_id)->toBe('abc123');
 });
 
-it('video belongs to creator', function () {
+it('video belongs to creator', function (): void {
     Creator::create(['handle' => '@test', 'status' => 'pending']);
 
     $video = Video::create([

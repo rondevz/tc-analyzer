@@ -3,9 +3,10 @@
 use App\Services\AudioClassifierService;
 use App\Services\OllamaService;
 
-it('returns noise immediately for an empty transcript without calling Ollama', function () {
+it('returns noise immediately for an empty transcript without calling Ollama', function (): void {
     $ollama = new class extends OllamaService {
         public bool $called = false;
+
         public function generate(string $model, string $prompt): string
         {
             $this->called = true;
@@ -19,17 +20,17 @@ it('returns noise immediately for an empty transcript without calling Ollama', f
         ->and($ollama->called)->toBeFalse();
 });
 
-it('returns speech when Ollama classifies the transcript as speech', function () {
+it('returns speech when Ollama classifies the transcript as speech', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return 'speech'; }
     };
 
-    $result = (new AudioClassifierService($ollama))->classify('Welcome to today\'s show.');
+    $result = (new AudioClassifierService($ollama))->classify("Welcome to today's show.");
 
     expect($result)->toBe('speech');
 });
 
-it('returns song when Ollama classifies the transcript as song', function () {
+it('returns song when Ollama classifies the transcript as song', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return 'song'; }
     };
@@ -39,7 +40,7 @@ it('returns song when Ollama classifies the transcript as song', function () {
     expect($result)->toBe('song');
 });
 
-it('defaults to noise when Ollama returns an unrecognisable response', function () {
+it('defaults to noise when Ollama returns an unrecognisable response', function (): void {
     $ollama = new class extends OllamaService {
         public function generate(string $model, string $prompt): string { return 'I think this is speech, probably.'; }
     };

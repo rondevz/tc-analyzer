@@ -3,9 +3,10 @@
 use App\Services\HairColorDetectorService;
 use App\Services\OllamaService;
 
-it('returns unknown immediately when frame path is null without calling Ollama', function () {
+it('returns unknown immediately when frame path is null without calling Ollama', function (): void {
     $ollama = new class extends OllamaService {
         public bool $called = false;
+
         public function generateWithImage(string $model, string $prompt, string $imagePath): string
         {
             $this->called = true;
@@ -19,9 +20,10 @@ it('returns unknown immediately when frame path is null without calling Ollama',
         ->and($ollama->called)->toBeFalse();
 });
 
-it('returns unknown when the frame file does not exist without calling Ollama', function () {
+it('returns unknown when the frame file does not exist without calling Ollama', function (): void {
     $ollama = new class extends OllamaService {
         public bool $called = false;
+
         public function generateWithImage(string $model, string $prompt, string $imagePath): string
         {
             $this->called = true;
@@ -35,7 +37,7 @@ it('returns unknown when the frame file does not exist without calling Ollama', 
         ->and($ollama->called)->toBeFalse();
 });
 
-it('returns trimmed hair color description from Moondream for a valid frame', function () {
+it('returns trimmed hair color description from Moondream for a valid frame', function (): void {
     $frame = tempnam(sys_get_temp_dir(), 'hair-test-') . '.jpg';
     file_put_contents($frame, 'fake-image');
 
@@ -53,7 +55,7 @@ it('returns trimmed hair color description from Moondream for a valid frame', fu
     expect($result)->toBe('dark brown');
 });
 
-it('passes through unknown when Moondream finds no visible hair', function () {
+it('passes through unknown when Moondream finds no visible hair', function (): void {
     $frame = tempnam(sys_get_temp_dir(), 'hair-test-') . '.jpg';
     file_put_contents($frame, 'fake-image');
 

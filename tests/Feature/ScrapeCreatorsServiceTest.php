@@ -11,7 +11,7 @@ function makeVideoAweme(string $id, int $durationMs): array
     ];
 }
 
-it('returns up to 3 shaped videos for a valid handle', function () {
+it('returns up to 3 shaped videos for a valid handle', function (): void {
     Http::fake([
         '*/v3/tiktok/profile/videos*' => Http::response([
             'aweme_list' => [
@@ -35,25 +35,25 @@ it('returns up to 3 shaped videos for a valid handle', function () {
         ->and($videos[2]['tiktok_id'])->toBe('333');
 });
 
-it('throws a descriptive exception on a 4xx response', function () {
+it('throws a descriptive exception on a 4xx response', function (): void {
     Http::fake([
         '*/v3/tiktok/profile/videos*' => Http::response(['error' => 'handle not found'], 404),
     ]);
 
-    expect(fn() => (new ScrapeCreatorsService('fake-key'))->fetchRecentVideos('@nonexistent'))
+    expect(fn(): array => (new ScrapeCreatorsService('fake-key'))->fetchRecentVideos('@nonexistent'))
         ->toThrow(RuntimeException::class, '[404]');
 });
 
-it('throws when the video list is empty', function () {
+it('throws when the video list is empty', function (): void {
     Http::fake([
         '*/v3/tiktok/profile/videos*' => Http::response(['aweme_list' => []], 200),
     ]);
 
-    expect(fn() => (new ScrapeCreatorsService('fake-key'))->fetchRecentVideos('@empty'))
+    expect(fn(): array => (new ScrapeCreatorsService('fake-key'))->fetchRecentVideos('@empty'))
         ->toThrow(RuntimeException::class, 'No videos');
 });
 
-it('never sends download_media in the request', function () {
+it('never sends download_media in the request', function (): void {
     Http::fake([
         '*/v3/tiktok/profile/videos*' => Http::response([
             'aweme_list' => [makeVideoAweme('111', 10_000)],
@@ -62,5 +62,5 @@ it('never sends download_media in the request', function () {
 
     (new ScrapeCreatorsService('fake-key'))->fetchRecentVideos('@creator');
 
-    Http::assertSent(fn($request) => ! array_key_exists('download_media', $request->data()));
+    Http::assertSent(fn($request): bool => ! array_key_exists('download_media', $request->data()));
 });

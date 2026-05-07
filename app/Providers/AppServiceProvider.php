@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Services\AudioClassifierService;
@@ -27,13 +29,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(ScrapeCreatorsService::class, fn() => new ScrapeCreatorsService(
+        $this->app->singleton(ScrapeCreatorsService::class, fn(): \App\Services\ScrapeCreatorsService => new ScrapeCreatorsService(
             (string) env('SCRAPECREATORS_API_KEY', '')
         ));
 
-        $this->app->singleton(VideoDownloaderService::class, fn() => new VideoDownloaderService());
+        $this->app->singleton(VideoDownloaderService::class, fn(): \App\Services\VideoDownloaderService => new VideoDownloaderService());
 
-        $this->app->singleton(TranscriptionService::class, fn() => new TranscriptionService(
+        $this->app->singleton(TranscriptionService::class, fn(): \App\Services\TranscriptionService => new TranscriptionService(
             (string) env('WHISPER_BINARY', 'whisper-cli'),
             (string) env('WHISPER_MODEL_PATH', ''),
         ));

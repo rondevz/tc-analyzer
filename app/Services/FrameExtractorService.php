@@ -18,20 +18,20 @@ class FrameExtractorService
         ]);
 
         if ($exitCode !== 0) {
-            throw new RuntimeException("ffprobe failed: {$stdout}");
+            throw new RuntimeException('ffprobe failed: ' . $stdout);
         }
 
         $duration = (float) trim($stdout);
         $seekTime = $duration * 0.3;
 
         $base = $this->storageBasePath ?? storage_path();
-        $dir = "{$base}/frames/{$handle}";
+        $dir = sprintf('%s/frames/%s', $base, $handle);
 
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 
-        $framePath = "{$dir}/{$tiktokId}.jpg";
+        $framePath = sprintf('%s/%s.jpg', $dir, $tiktokId);
 
         [$exitCode, , $stderr] = $this->exec([
             'ffmpeg', '-ss', (string) $seekTime,
@@ -41,7 +41,7 @@ class FrameExtractorService
         ]);
 
         if ($exitCode !== 0) {
-            throw new RuntimeException("ffmpeg failed: {$stderr}");
+            throw new RuntimeException('ffmpeg failed: ' . $stderr);
         }
 
         return $framePath;

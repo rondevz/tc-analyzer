@@ -10,7 +10,7 @@ class LanguageDetectorService
 
     public function detect(array $transcripts): array
     {
-        if (empty($transcripts)) {
+        if ($transcripts === []) {
             return [];
         }
 
@@ -40,7 +40,7 @@ class LanguageDetectorService
 
         return array_values(array_filter(
             $decoded,
-            fn($code) => is_string($code) && strlen($code) === 2
+            fn($code): bool => is_string($code) && strlen($code) === 2
         ));
     }
 }

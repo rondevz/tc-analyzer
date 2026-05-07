@@ -23,7 +23,7 @@ class TranscriptionService
             ]);
 
             if ($exitCode !== 0) {
-                throw new RuntimeException("ffmpeg failed [{$exitCode}]: {$stderr}");
+                throw new RuntimeException(sprintf('ffmpeg failed [%s]: %s', $exitCode, $stderr));
             }
 
             [$exitCode, $stderr] = $this->exec([
@@ -35,7 +35,7 @@ class TranscriptionService
             ]);
 
             if ($exitCode !== 0) {
-                throw new RuntimeException("whisper failed [{$exitCode}]: {$stderr}");
+                throw new RuntimeException(sprintf('whisper failed [%s]: %s', $exitCode, $stderr));
             }
 
             return file_exists($txtPath) ? trim((string) file_get_contents($txtPath)) : '';
@@ -43,6 +43,7 @@ class TranscriptionService
             if (file_exists($wavPath)) {
                 unlink($wavPath);
             }
+
             if (file_exists($txtPath)) {
                 unlink($txtPath);
             }
