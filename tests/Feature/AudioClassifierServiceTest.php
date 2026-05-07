@@ -42,7 +42,7 @@ it('returns song when Ollama classifies the transcript as song', function (): vo
 
 it('defaults to noise when Ollama returns an unrecognisable response', function (): void {
     $ollama = new class extends OllamaService {
-        public function generate(string $model, string $prompt): string { return 'I think this is speech, probably.'; }
+        public function generate(string $model, string $prompt): string { return 'I cannot determine this.'; }
     };
 
     $result = (new AudioClassifierService($ollama))->classify('some transcript');
