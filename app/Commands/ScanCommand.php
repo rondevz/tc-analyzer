@@ -49,7 +49,7 @@ class ScanCommand extends Command
         $this->hairColorDetector = $hairColorDetector;
 
         $csvPath = $this->argument('csv');
-        $handles = array_filter(array_map('trim', file($csvPath)), fn($h) => $h !== '');
+        $handles = array_filter(array_map('trim', file($csvPath)), fn($h) => str_starts_with($h, '@'));
 
         if ($limit = $this->option('limit')) {
             $handles = array_slice($handles, 0, (int) $limit);
