@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\ScrapeCreatorsService;
+use App\Services\TranscriptionService;
 use App\Services\VideoDownloaderService;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,5 +27,10 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(VideoDownloaderService::class, fn() => new VideoDownloaderService());
+
+        $this->app->singleton(TranscriptionService::class, fn() => new TranscriptionService(
+            (string) env('WHISPER_BINARY', 'whisper-cli'),
+            (string) env('WHISPER_MODEL_PATH', ''),
+        ));
     }
 }
