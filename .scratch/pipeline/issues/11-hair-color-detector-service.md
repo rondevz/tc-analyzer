@@ -1,5 +1,5 @@
 ---
-Status: needs-triage
+Status: done
 ---
 
 # 11 — HairColorDetectorService

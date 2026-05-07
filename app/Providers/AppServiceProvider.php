@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Services\AudioClassifierService;
+use App\Services\FrameExtractorService;
+use App\Services\HairColorDetectorService;
+use App\Services\LanguageDetectorService;
+use App\Services\OllamaService;
 use App\Services\ScrapeCreatorsService;
 use App\Services\TranscriptionService;
 use App\Services\VideoDownloaderService;
@@ -32,5 +37,11 @@ class AppServiceProvider extends ServiceProvider
             (string) env('WHISPER_BINARY', 'whisper-cli'),
             (string) env('WHISPER_MODEL_PATH', ''),
         ));
+
+        $this->app->singleton(OllamaService::class);
+        $this->app->singleton(FrameExtractorService::class);
+        $this->app->singleton(AudioClassifierService::class);
+        $this->app->singleton(LanguageDetectorService::class);
+        $this->app->singleton(HairColorDetectorService::class);
     }
 }
