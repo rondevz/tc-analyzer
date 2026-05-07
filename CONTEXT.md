@@ -18,7 +18,9 @@ Domain glossary and resolved decisions for the TikTok Creator Analysis Pipeline.
 
 **Process & Purge** — the default file lifecycle: after a video is fully processed (transcript written, frame extracted), the `.mp4` and intermediate `.wav` files are deleted to reclaim disk. The `--keep-videos` flag on the `scan` command disables purging and retains all downloaded files.
 
-**scan command** — the main entry point: `php tc-analyzer scan {csv} {--keep-videos} {--limit=}`. The `--limit` flag restricts processing to the first N handles, useful for demos.
+**scan command** — the main entry point: `php application scan {csv} {--keep-videos} {--limit=}`. The `--limit` flag restricts processing to the first N handles, useful for demos. Outputs a step indicator for every pipeline stage (see below).
+
+**Step indicator** — the per-step console output pattern used by `scan`: writes the step label and fill dots while the operation runs, then appends `✓ <result>` or `✗ <error>` on the same line once complete. Each step that produces a meaningful value surfaces it inline (transcript snippet, audio class, language codes, hair color). A per-creator summary line is printed after all steps complete.
 
 **Hair color** — a free-text description of the creator's hair color as returned by Moondream from the representative frame. Fuzzy by design; may be `unknown` if no suitable frame exists.
 

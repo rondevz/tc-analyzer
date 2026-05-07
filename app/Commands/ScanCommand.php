@@ -49,47 +49,67 @@ class ScanCommand extends Command
         $this->hairColorDetector = $hairColorDetector;
 
         $csvPath = $this->argument('csv');
-        $handles = array_filter(array_map('trim', file($csvPath)), fn($h) => str_starts_with($h, '@'));
+        $handles = array_values(array_filter(
+            array_map('trim', file($csvPath)),
+            fn($h) => str_starts_with($h, '@')
+        ));
 
         if ($limit = $this->option('limit')) {
             $handles = array_slice($handles, 0, (int) $limit);
         }
 
-        foreach ($handles as $handle) {
+        $total = count($handles);
+
+        foreach ($handles as $index => $handle) {
             try {
-                $this->processCreator($handle);
+                $this->processCreator($handle, $index + 1, $total);
             } catch (\Throwable $e) {
                 Creator::where('handle', $handle)->update(['status' => 'failed']);
                 Log::error("Creator {$handle} failed: {$e->getMessage()}");
-                $this->error("Creator {$handle} failed: {$e->getMessage()}");
             }
         }
     }
 
-    private function processCreator(string $handle): void
+    private function processCreator(string $handle, int $num, int $total): void
     {
+        $this->newLine();
+        $this->line("<options=bold>{$handle}</> <fg=gray>[{$num}/{$total}]</>");
+
         $creator = Creator::firstOrCreate(
             ['handle' => $handle],
             ['status' => 'pending']
         );
 
         if ($creator->status === 'done') {
-            $this->info("Skipping {$handle} (already done)");
+            $this->line('  <fg=yellow>↷ Already done, skipping</>');
             return;
         }
 
         $creator->update(['status' => 'processing']);
 
-        foreach ($this->scraper->fetchRecentVideos($handle) as $v) {
+        $videos = $this->step(
+            '  Fetching videos',
+            fn() => $this->scraper->fetchRecentVideos($handle),
+            fn($vs) => count($vs) . ' video(s) found'
+        );
+
+        foreach ($videos as $v) {
             Video::firstOrCreate(
                 ['creator_handle' => $handle, 'tiktok_id' => $v['tiktok_id']],
                 ['tiktok_url' => $v['tiktok_url'], 'status' => 'pending']
             );
         }
 
-        foreach ($creator->videos()->where('status', '!=', 'done')->get() as $video) {
+        $pending = $creator->videos()->where('status', '!=', 'done')->get();
+        $pendingCount = $pending->count();
+
+        foreach ($pending as $vIndex => $video) {
+            $this->newLine();
+            $this->line('  <fg=cyan>Video ' . ($vIndex + 1) . "/{$pendingCount}</> <fg=gray>{$video->tiktok_id}</>");
             $this->processVideo($creator, $video);
         }
+
+        $this->newLine();
 
         $speechTranscripts = $creator->videos()
             ->where('audio_class', 'speech')
@@ -101,29 +121,74 @@ class ScanCommand extends Command
 
         $framePath = $creator->videos()->whereNotNull('frame_path')->value('frame_path');
 
+        $languages = $this->step(
+            '  Detecting languages',
+            fn() => $this->languageDetector->detect($speechTranscripts),
+            fn($codes) => empty($codes) ? 'none detected' : implode(', ', $codes)
+        );
+
+        $hairColor = $this->step(
+            '  Detecting hair color',
+            fn() => $this->hairColorDetector->detect($framePath),
+            fn($color) => $color
+        );
+
         $creator->update([
-            'spoken_languages' => $this->languageDetector->detect($speechTranscripts),
-            'hair_color'       => $this->hairColorDetector->detect($framePath),
+            'spoken_languages' => $languages,
+            'hair_color'       => $hairColor,
             'status'           => 'done',
             'processed_at'     => now(),
         ]);
+
+        $done   = $creator->videos()->where('status', 'done')->count();
+        $failed = $creator->videos()->where('status', 'failed')->count();
+        $langStr = empty($languages) ? 'none' : implode(', ', $languages);
+        $videoSummary = $done . ' done' . ($failed > 0 ? ", {$failed} failed" : '');
+
+        $this->newLine();
+        $this->line(str_repeat('─', 60));
+        $this->line("<options=bold>{$handle}</> · {$videoSummary} · languages: {$langStr} · hair: {$hairColor}");
     }
 
     private function processVideo(Creator $creator, Video $video): void
     {
         try {
-            $videoPath = $this->downloader->download($video->tiktok_url, $creator->handle, $video->tiktok_id);
+            $videoPath = $this->step(
+                '    Downloading',
+                fn() => $this->downloader->download($video->tiktok_url, $creator->handle, $video->tiktok_id)
+            );
             $video->update(['status' => 'downloaded']);
 
-            $transcript = $this->transcriber->transcribe($videoPath);
+            $transcript = $this->step(
+                '    Transcribing',
+                fn() => $this->transcriber->transcribe($videoPath),
+                function ($t) {
+                    if (empty($t)) {
+                        return 'empty';
+                    }
+                    $preview = mb_substr($t, 0, 80);
+                    return '"' . $preview . (mb_strlen($t) > 80 ? '…' : '') . '"';
+                }
+            );
             $video->update(['transcript' => $transcript, 'status' => 'transcribed']);
 
-            $audioClass = $this->classifier->classify($transcript);
+            $audioClass = $this->step(
+                '    Classifying',
+                fn() => $this->classifier->classify($transcript),
+                fn($c) => $c
+            );
             $video->update(['audio_class' => $audioClass, 'status' => 'classified']);
 
-            if ($audioClass === 'speech' && ! $creator->videos()->whereNotNull('frame_path')->exists()) {
-                $framePath = $this->frameExtractor->extract($videoPath, $creator->handle, $video->tiktok_id);
-                $video->update(['frame_path' => $framePath]);
+            if ($audioClass === 'speech') {
+                if ($creator->videos()->whereNotNull('frame_path')->exists()) {
+                    $this->line('    <fg=gray>Frame already extracted, skipping</>');
+                } else {
+                    $framePath = $this->step(
+                        '    Extracting frame',
+                        fn() => $this->frameExtractor->extract($videoPath, $creator->handle, $video->tiktok_id)
+                    );
+                    $video->update(['frame_path' => $framePath]);
+                }
             }
 
             if (! $this->option('keep-videos') && file_exists($videoPath)) {
@@ -135,7 +200,24 @@ class ScanCommand extends Command
         } catch (\Throwable $e) {
             $video->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
             Log::warning("Video {$video->tiktok_id} failed: {$e->getMessage()}");
-            $this->warn("Video {$video->tiktok_id} failed: {$e->getMessage()}");
+        }
+    }
+
+    private function step(string $description, callable $fn, ?callable $format = null): mixed
+    {
+        $plainLen = mb_strlen(preg_replace('/<[^>]+>/', '', $description));
+        $dots = max(52 - $plainLen, 3);
+
+        $this->output->write($description . ' ' . str_repeat('<fg=gray>.</>', $dots) . ' ');
+
+        try {
+            $result = $fn();
+            $suffix = $format ? (' <fg=gray>' . $format($result) . '</>') : '';
+            $this->output->writeln('<fg=green>✓</>' . $suffix);
+            return $result;
+        } catch (\Throwable $e) {
+            $this->output->writeln('<fg=red>✗</> <fg=red>' . $e->getMessage() . '</>');
+            throw $e;
         }
     }
 }
