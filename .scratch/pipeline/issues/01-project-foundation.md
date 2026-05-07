@@ -1,5 +1,5 @@
 ---
-Status: needs-triage
+Status: done
 ---
 
 # 01 — Project foundation
