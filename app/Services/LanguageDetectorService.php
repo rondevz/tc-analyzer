@@ -17,13 +17,19 @@ class LanguageDetectorService
         $combined = implode("\n\n", $transcripts);
 
         $prompt = <<<PROMPT
-            Identify all spoken languages in the following text. Return a JSON array of ISO 639-1 codes only (e.g. ["en", "es"]). No explanation.
+            Look at the text below and identify which languages it is written in. Output ONLY a JSON array of ISO 639-1 two-letter codes based solely on the text content. No explanation, no markdown, no code fences.
+            Examples: ["en"] for English only, ["es"] for Spanish only, ["en","es"] for both.
 
             Text:
             {$combined}
             PROMPT;
 
-        $response = trim($this->ollama->generate('llama3.2:1b', $prompt));
+        $raw = trim($this->ollama->generate('llama3.2:1b', $prompt));
+        $response = trim((string) preg_replace('/^```[a-z]*\n?|\n?```$/m', '', $raw));
+
+        if (preg_match('/\[.*?\]/s', $response, $m)) {
+            $response = $m[0];
+        }
 
         $decoded = json_decode($response, true);
 

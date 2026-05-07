@@ -1,5 +1,9 @@
 # TikTok Creator Analysis Pipeline
 
+<div align="center">
+  <img src="demo.png" alt="Demo" width="600">
+</div>
+
 A Laravel Zero CLI application that reads a CSV of TikTok handles, fetches recent videos, transcribes audio, and uses local LLMs (Ollama) to detect spoken languages and hair color.
 
 ```

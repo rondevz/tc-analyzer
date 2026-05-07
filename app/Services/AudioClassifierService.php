@@ -13,15 +13,26 @@ class AudioClassifierService
         }
 
         $prompt = <<<PROMPT
-            Classify the following transcript as exactly one of: speech, song, noise.
-            Output only the single word. No explanation.
+            The transcript below may be in any language. Classify it as exactly one of: speech, song, noise.
+            Output only the single word. No explanation, no punctuation, no markdown.
 
             Transcript:
             {$transcript}
             PROMPT;
 
         $response = strtolower(trim($this->ollama->generate('llama3.2:1b', $prompt)));
+        $response = trim((string) preg_replace('/^```[a-z]*\n?|\n?```$/m', '', $response));
 
-        return in_array($response, ['speech', 'song', 'noise'], true) ? $response : 'noise';
+        if (in_array($response, ['speech', 'song', 'noise'], true)) {
+            return $response;
+        }
+
+        foreach (['speech', 'song', 'noise'] as $class) {
+            if (preg_match('/\b' . $class . '\b/', $response)) {
+                return $class;
+            }
+        }
+
+        return 'noise';
     }
 }

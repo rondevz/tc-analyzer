@@ -30,6 +30,7 @@ class TranscriptionService
                 $this->whisperBinary,
                 '-m', $this->whisperModelPath,
                 '-f', $wavPath,
+                '-l', 'auto',
                 '-otxt',
             ]);
 
