@@ -4,3 +4,4 @@
 /.vagrant
 .phpunit.result.cache
 .phpactor.json
+.env
